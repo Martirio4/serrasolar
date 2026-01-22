@@ -2,6 +2,7 @@ import { installationRepository } from '@/data/repositories';
 import { InstallationsClient } from './installations-client';
 import { InstallationsFilters } from './installations-filters';
 import { InstallationsContent } from './installations-content';
+import { Suspense } from 'react';
 
 async function getInstallations(searchParams: { search?: string; status?: string }) {
   let installations = await installationRepository.getAll();
@@ -27,7 +28,9 @@ export default async function InstallationsPage({
   return (
     <div>
       <InstallationsClient />
-      <InstallationsFilters searchParams={searchParams} />
+      <Suspense fallback={<div className="mb-6 h-12" />}>
+        <InstallationsFilters searchParams={searchParams} />
+      </Suspense>
       <InstallationsContent installations={installations} />
     </div>
   );

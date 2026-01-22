@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
       title: body.title,
       description: body.description,
       assignedTechnicianId: null,
+      resolvedAt: null,
     };
 
     const ticket = await ticketRepository.create(ticketData);

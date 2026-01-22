@@ -1,65 +1,116 @@
-import Image from "next/image";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { activityRepository, ticketRepository, installationRepository } from '@/data/repositories';
+import { DashboardClient } from './page-client';
+import { ActivityList } from './activity-list';
 
-export default function Home() {
+async function getDashboardData() {
+  const [tickets, installations, activities] = await Promise.all([
+    ticketRepository.getAll(),
+    installationRepository.getAll(),
+    activityRepository.getRecent(10),
+  ]);
+
+  const openTickets = tickets.filter((t) => t.status === 'open' || t.status === 'in_progress');
+  const scheduledVisits = tickets.filter((t) => {
+    const created = new Date(t.createdAt);
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+    return created <= sevenDaysFromNow && (t.status === 'open' || t.status === 'in_progress');
+  });
+  const activeInstallations = installations.filter((inst) => inst.status === 'active');
+
+  // Calculate average resolution time
+  const resolvedTickets = tickets.filter((t) => t.resolvedAt);
+  const avgResolutionTime = resolvedTickets.length > 0
+    ? resolvedTickets.reduce((acc, ticket) => {
+        if (!ticket.resolvedAt) return acc;
+        const created = new Date(ticket.createdAt).getTime();
+        const resolved = new Date(ticket.resolvedAt).getTime();
+        return acc + (resolved - created);
+      }, 0) / resolvedTickets.length / (1000 * 60 * 60 * 24) // Convert to days
+    : 0;
+
+  return {
+    openTickets: openTickets.length,
+    scheduledVisits: scheduledVisits.length,
+    activeInstallations: activeInstallations.length,
+    avgResolutionTime: Math.round(avgResolutionTime * 10) / 10,
+    activities,
+  };
+}
+
+export default async function DashboardPage() {
+  const data = await getDashboardData();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div>
+      <DashboardClient />
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-[#14B8A6]/5 rounded-bl-full"></div>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">Tickets Abiertos</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex items-baseline gap-2">
+              <div className="text-4xl font-bold text-gray-900">{data.openTickets}</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-[#14B8A6]/5 rounded-bl-full"></div>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">Visitas Programadas</CardTitle>
+            <p className="text-xs text-gray-500 mt-0.5">Próximos 7 días</p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex items-baseline gap-2">
+              <div className="text-4xl font-bold text-gray-900">{data.scheduledVisits}</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-[#14B8A6]/5 rounded-bl-full"></div>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">Instalaciones Activas</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex items-baseline gap-2">
+              <div className="text-4xl font-bold text-gray-900">{data.activeInstallations}</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-[#14B8A6]/5 rounded-bl-full"></div>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">Tiempo Promedio</CardTitle>
+            <p className="text-xs text-gray-500 mt-0.5">Resolución</p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex items-baseline gap-2">
+              <div className="text-4xl font-bold text-gray-900">{data.avgResolutionTime}</div>
+              <div className="text-sm font-medium text-gray-500">días</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Actividad Reciente</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ActivityList activities={data.activities} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

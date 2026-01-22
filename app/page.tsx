@@ -66,7 +66,6 @@ export default async function DashboardPage() {
           <div className="absolute top-0 right-0 w-20 h-20 bg-[#14B8A6]/5 rounded-bl-full"></div>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-600">Visitas Programadas</CardTitle>
-            <p className="text-xs text-gray-500 mt-0.5">Próximos 7 días</p>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex items-baseline gap-2">
@@ -91,7 +90,6 @@ export default async function DashboardPage() {
           <div className="absolute top-0 right-0 w-20 h-20 bg-[#14B8A6]/5 rounded-bl-full"></div>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-600">Tiempo Promedio</CardTitle>
-            <p className="text-xs text-gray-500 mt-0.5">Resolución</p>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex items-baseline gap-2">
